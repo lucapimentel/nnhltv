@@ -1,0 +1,49 @@
+select * from rel_jogos where idTime01 = 4494 and idTime02 = 4411
+select * from rel_jogos where idTime01 = 4411 and idTime02 = 4494
+delete from rel_jogos
+
+
+select * from times where id order by id
+
+select t01.nome as time_01, t02.nome as time_02, tv.nome as vencedor  from rel_jogos rj
+inner join times t01 on t01.id = rj.idTime01
+inner join times t02 on t02.id = rj.idTime02
+inner join times tv on tv.id = rj.idTimeVencedor
+where rj.idTime01 = 5395 and rj.idTime02 = 7613 or rj.idTime01 = 7613 and rj.idTime02 = 5395
+
+
+
+select count(rj.idTimeVencedor)*1.0 from rel_jogos where idTime01 = 4494  from rel_jogos rj
+where rj.idTime01 = 4494 and rj.idTimeVencedor = 4494
+
+
+
+insert into rel_times (idTime01, idTime02, porcentVitoriaT01_T02_C1, porcentVitoriaT01_T02_C2)
+select distinct 
+		7613,
+		rjOri.idTime02, 
+	   (
+			select (count(rj.idTimeVencedor)*1.0)/(select count(*) from rel_jogos where idTime01 = 7613 and idTime02 = rjOri.idTime02 or idTime02 = 7613 and idTime01 = rjOri.idTime02) as valor from rel_jogos rj
+			where rj.idTime01 = 7613 and rj.idTimeVencedor = 7613 and rj.idTime02 = rjOri.idTime02
+		
+		) as primeiro,
+		(
+			select (count(rj.idTimeVencedor)*1.0)/(select count(*) from rel_jogos where idTime01 = 7613 and idTime02 = rjOri.idTime02 or idTime02 = 7613 and idTime01 = rjOri.idTime02) as valor from rel_jogos rj
+			where rj.idTime01 = rjOri.idTime02 and rj.idTimeVencedor = 7613 and rj.idTime02 = 7613
+		) as segundo
+from rel_jogos rjOri
+where rjOri.idTime02 not in (4411, 4494, 4608, 4863, 4991, 5310, 5378, 5395, 5422, 5752, 5929, 5973, 5974, 5991, 5995, 6010, 6137, 6211, 6615, 6651, 6665, 6667, 6673, 6902, 7010, 7175, 7532, 7533, 7557, 7613) and rjOri.idTime01 not in (4411, 4494, 4608, 4863, 4991, 5310, 5378, 5395, 5422, 5752, 5929,5973, 5974, 5991, 5995, 6010, 6137, 6211, 6615, 6651, 6665, 6667, 6673, 6902, 7010, 7175, 7532, 7533, 7557, 7613)
+order by idTime02
+
+select * from rel_times
+
+select count(*) from rel_jogos where idTime02 = 4411 and idTime01 = 4494 or idTime01 = 4411 and idTime02 = 4494
+
+			select sum (x) from (select (count(rj.idTimeVencedor)*1.0) / 29  as x from rel_jogos rj
+			where rj.idTime01 = 4411 and rj.idTimeVencedor = 4411 and rj.idTime02 = 4494
+			union all
+			select (count(rj.idTimeVencedor)*1.0) / 29 as x from rel_jogos rj
+			where rj.idTime01 = 4494 and rj.idTimeVencedor = 4411 and rj.idTime02 = 4411)
+
+
+select * from times where id not in (4411, 4494, 4608, 4863, 4991, 5310, 5378, 5395, 5422, 5752, 5929,5973, 5974, 5991, 5995, 6010, 6137, 6211, 6615, 6651, 6665, 6667, 6673, 6902, 7010, 7175)
