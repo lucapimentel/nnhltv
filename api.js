@@ -9,24 +9,24 @@ var sqlite3 = require('sqlite3').verbose();
 var db = new sqlite3.Database('database/hltv');
 var async = require('async');
 var mlp = require('mlp');
+var http = require('https');
 
 
 app.get('/mlp', function (req, res) {
-    var csgoMLP = new mlp(7,2);
+    var csgoMLP = new mlp(7, 2);
     //res.json(csgoMLP);
     csgoMLP.addHiddenLayer(25);
     //pegar todas as entradas e saidas esperadas no banco de dados
-    
+
 
     res.json(csgoMLP);
 });
 
 app.get('/scrape', function (req, res) {
 
-    db.all('select id from times where id != 7613 order by id', function (err, allRows) {
+    db.all('select id from times where id != 4991 order by id', function (err, allRows) {
         async.each(allRows, function (allRows, callback) {
-
-            var url = "https://www.hltv.org/results?team=" + allRows.id + "&requireAllTeams=&team=7613";
+            var url = "https://www.hltv.org/results?team=" + allRows.id + "&requireAllTeams=&team=4991";
 
             getData(url, function () {
                 callback();
@@ -36,7 +36,7 @@ app.get('/scrape', function (req, res) {
                 console.log(err);
             } else {
                 console.log("Fim de processo");
-               process.exit(0);
+              //  process.exit(0);
             }
         });
     });
@@ -50,11 +50,13 @@ function getData(url, callback) {
             var team_01, team_02, result_team_01, result_team_02, tourn, tourn_img;
             var json = { team_01: "", team_02: "", result_team_01: "", result_team_02: "", tourn: "", tourn_img: "" };
             var resp = "";
+            var querys = [];
             $(".results-all").filter(function () {
 
                 var data = $(this);
                 var result = data.find(".result-con");
                 var count = 0;
+
                 result.each(function () {
                     team_01 = $(this).find(".team-cell").first().children().children().text();
                     team_02 = $(this).find(".team-cell").next().next().first().children().children().text();
@@ -64,28 +66,60 @@ function getData(url, callback) {
                     result_team_02 = $(this).find(".team-cell").next().first().find("span").next().text();
                     tourn = $(this).find(".team-cell").next().next().next().first().find(".event-name").text();
                     tourn_img = $(this).find(".team-cell").next().next().next().first().find("img").attr("src");
-
-                    json.team_01 = team_01;
-                    json.team_02 = team_02;
-                    json.result_team_01 = result_team_01;
-                    json.result_team_02 = result_team_02;
-                    json.tourn = tourn;
-                    json.tourn_img = tourn_img;
-
+                    var mapa = $(this).find(".star-cell").find(".map-text").text();
+                    var link = $(this).find(".a-reset").attr("href");
                     var queryResult = "";
-                    if (parseInt(result_team_01) > parseInt(result_team_02)) {
-                        queryResult = team_01_id;
+                   // console.log(mapa.indexOf("bo3") >= 0);
+                    if (mapa.indexOf("bo3") >= 0 || mapa.indexOf("bo2") >= 0 || mapa.indexOf("bo5") >= 0) {
+                        if (parseInt(result_team_01) > parseInt(result_team_02)) {
+                            queryResult = team_01_id;
+                        } else {
+                            queryResult = team_02_id;
+                        }
+                        // var query = "insert into rel_jogos (idTime01, idTime02, idTimeVencedor) values (" + team_01_id + ", " + team_02_id + ", " + queryResult + ")";
+                        var query = "update rel_jogos set mapa = '?' where idTime01 = " + team_01_id + " and idTime02 = " + team_02_id + " and  idTimeVencedor = " + queryResult;
+                        var urlBo3 = "https://www.hltv.org" + link;
+                        // db.run(query);
+
+                        getMapBo3Name(urlBo3, query);
                     } else {
-                        queryResult = team_02_id;
+                        if (parseInt(result_team_01) > parseInt(result_team_02)) {
+                            queryResult = team_01_id;
+                        } else {
+                            queryResult = team_02_id;
+                        }
+                        // var query = "insert into rel_jogos (idTime01, idTime02, idTimeVencedor) values (" + team_01_id + ", " + team_02_id + ", " + queryResult + ")";
+                        var query = "update rel_jogos set mapa = " + "'" + mapa + "'" + " where idTime01 = " + team_01_id + " and idTime02 = " + team_02_id + " and  idTimeVencedor = " + queryResult;
+                        // console.log(query);
+                        //console.log(mapa);
+                        db.run(query);
                     }
-                    var query = "insert into rel_jogos (idTime01, idTime02, idTimeVencedor) values (" + team_01_id + ", " + team_02_id + ", " + queryResult + ")";
-                    resp = query;
-                  
-                     db.run(query);
+
                 });
             });
         }
         callback();
+    });
+}
+
+function getMapBo3Name(url, query) {
+    console.log(url);
+    http.get(url, function (response) {
+        var html = "";
+        response.on('data', function (chunk) {
+            html += chunk;
+        });
+
+        response.on('end', function () {
+            console.log(html);
+            var $ = cheerio.load(html);
+            var mapName = "";
+            $(".match-page").filter(function () {
+                mapName = $(this).find(".map-name-holder").first().find(".mapname").text();
+                console.log(mapName);
+                db.run(query.toString().replace("?", mapName));
+            });
+        })
     });
 }
 
