@@ -10,17 +10,77 @@ var db = new sqlite3.Database('database/hltv');
 var async = require('async');
 var mlp = require('mlp');
 var http = require('https');
+var bodyParser = require('body-parser');
+
+var csgoMLP = new mlp(7, 2);
+var learnRate = 0.5;
+var error = Number.MAX_VALUE;
+csgoMLP.addHiddenLayer(25);
+
+var urlencodedParser = bodyParser.urlencoded({ extended: true })
 
 
 app.get('/mlp', function (req, res) {
-    var csgoMLP = new mlp(7, 2);
-    //res.json(csgoMLP);
-    csgoMLP.addHiddenLayer(25);
-    //pegar todas as entradas e saidas esperadas no banco de dados
+    csgoMLP.init();
+
+    db.all("SELECT * FROM vw_treinamento", function (err, allRows) {
+        res.json(allRows);
+
+        for (var index = 0; index < allRows.length; index++) {
+            csgoMLP.addToTrainingSet([allRows[index].percVitTotalT1, allRows[index].KDAT1, allRows[index].percVitTotalT2, allRows[index].KDAT2, allRows[index].PorcT1emCimaT2, allRows[index].porcMapa01, allRows[index].porcMapa02], [allRows[index].vitoriaT1, allRows[index].vitoriaT2]);
+            var query = "INSERT INTO dadoTreinamento values (" + allRows[index].idRJ + ")";
+            //console.log(query);
+            db.run(query, function (err) {
+                console.log("Finish");
+                res.status(200);
+                res.end();
+            });
+        }
+    });
 
 
-    res.json(csgoMLP);
+
 });
+
+app.get("/train", function (req, res) {
+    var learnRate = 0.5;
+    var error = Number.MAX_VALUE;
+    while (error > 22) {
+        error = csgoMLP.train(learnRate);
+        console.log(error);
+    }
+});
+
+app.get("/clear", function (req, res) {
+    csgoMLP.clearTrainingSet();
+    csgoMLP.resetWeights();
+
+    var query = "DELETE FROM dadoTreinamento";
+    //console.log(query);
+    db.run(query, function (err) {
+        console.log("End clear");
+        res.status(200);
+        res.end();
+    });
+});
+
+app.get("/exportWeights", function (req, res) {
+    res.json(csgoMLP.exportToJson());
+});
+
+app.post("/importWeights", urlencodedParser, function (req, res) {
+    var jsonWeights = req.body;
+    res.json(jsonWeights);
+    console.log(req);
+    //csgoMLP.setWeights(jsonWeights);
+})
+
+app.get("/teste", function (req, res) {
+    var elementToClassify = [0.667271078875793, 1.0, 0.667924528301887, 1.0, 0.4, 0.6, 0.726];
+    var classification = csgoMLP.classify(elementToClassify);
+    res.json(classification);
+    console.log(classification);
+})
 
 app.get('/scrape', function (req, res) {
 
@@ -36,7 +96,7 @@ app.get('/scrape', function (req, res) {
                 console.log(err);
             } else {
                 console.log("Fim de processo");
-              //  process.exit(0);
+                //  process.exit(0);
             }
         });
     });
@@ -69,7 +129,7 @@ function getData(url, callback) {
                     var mapa = $(this).find(".star-cell").find(".map-text").text();
                     var link = $(this).find(".a-reset").attr("href");
                     var queryResult = "";
-                   // console.log(mapa.indexOf("bo3") >= 0);
+                    // console.log(mapa.indexOf("bo3") >= 0);
                     if (mapa.indexOf("bo3") >= 0 || mapa.indexOf("bo2") >= 0 || mapa.indexOf("bo5") >= 0) {
                         if (parseInt(result_team_01) > parseInt(result_team_02)) {
                             queryResult = team_01_id;
