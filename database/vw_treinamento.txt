@@ -1,0 +1,56 @@
+CREATE VIEW vw_treinamento
+AS 
+select rj.id as idRJ, t1.percVitoria_total as percVitTotalT1, 
+t1.KDA as KDAT1,
+/*t1.? as porcMapaT1*/t2.percVitoria_total as percVitTotalT2,
+t1.KDA as KDAT2,
+/*t2.? as porcMapaT2*/ rt.porcentVitoriaT01_T02 as PorcT1emCimaT2,
+(case rj.idTimeVencedor when rj.idTime01 then 1
+				when  rj.idTime02 then 0
+				end) as vitoriaT1,
+(case rj.idTimeVencedor when rj.idTime01 then 0
+				when  rj.idTime02 then 1
+				end) as vitoriaT2,
+
+
+(CASE 
+   WHEN rj.mapa like 'Cobblestone' THEN t1.Cobblestone
+   WHEN rj.mapa like 'Overpass' THEN t1.Overpass
+   WHEN rj.mapa like 'Inferno' THEN t1.Inferno
+   WHEN rj.mapa like 'Train' THEN t1.Train
+   WHEN rj.mapa like 'Cache' THEN t1.Cache
+   WHEN rj.mapa like 'Mirage' THEN t1.Mirage
+   WHEN rj.mapa like 'Nuke' THEN t1.Nuke
+   WHEN rj.mapa like 'Dust2' THEN t1.Dust2
+END) as porcMapa01,
+(CASE 
+   WHEN rj.mapa like 'Cobblestone' THEN t2.Cobblestone
+   WHEN rj.mapa like 'Overpass' THEN t2.Overpass
+   WHEN rj.mapa like 'Inferno' THEN t2.Inferno
+   WHEN rj.mapa like 'Train' THEN t2.Train
+   WHEN rj.mapa like 'Cache' THEN t2.Cache
+   WHEN rj.mapa like 'Mirage' THEN t2.Mirage
+   WHEN rj.mapa like 'Nuke' THEN t2.Nuke
+   WHEN rj.mapa like 'Dust2' THEN t2.Dust2
+END) as porcMapa02
+
+
+from rel_jogos rj 
+inner join rel_times rt on (rj.idTime01 in (rt.idTime01,rt.idTime02) and rj.idTime02 in (rt.idTime01,rt.idTime02))
+inner join times t1 on ( rj.idTime01 = t1.id)
+inner join times t2 on ( rj.idTime02 = t2.id)
+where rj.mapa not like 'WO'
+--where resultado = 1
+order by random() limit 2000 
+
+DROP VIEW vw_treinamento;
+-- TIME 01 x TIME 02
+
+select * from times where id in (5378,6667,5973,5752)
+
+select * from dadosRede
+
+
+select * FROM rel_jogos
+
+
